@@ -1,0 +1,102 @@
+<LiveChatWeb.Layouts.app flash={@flash} current_user={@current_user}>
+  <div class="max-w-2xl mx-auto py-12">
+    <h1 class="text-3xl font-bold mb-6">Welcome to the Chat Room, {@current_user.username}</h1>
+    <!-- GIF Search Form -->
+    <.form for={@gif_form} phx-submit="search_gifs" class="flex gap-2 mb-4">
+      <.input
+        field={@gif_form[:query]}
+        type="text"
+        placeholder="Search GIFs..."
+        class="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-200 transition"
+        required
+        autofocus
+        disabled={@gif_loading}
+      />
+      <button
+        type="submit"
+        class={[
+          "btn btn-secondary px-4 py-2 rounded transition font-bold ",
+          @gif_loading && "opacity-70 cursor-wait"
+        ]}
+        disabled={@gif_loading}
+        aria-busy={@gif_loading}
+      >
+        <%= if @gif_loading do %>
+          <.icon name="hero-arrow-path" class="w-5 h-5 mr-1 animate-spin inline-block" />
+          Searching...
+        <% else %>
+          Search GIFs
+        <% end %>
+      </button>
+    </.form>
+    <!-- GIF Results Grid & State -->
+    <div id="gif-results" class="min-h-[128px] mb-6">
+      <%= if @gif_loading do %>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 animate-pulse">
+          <div :for={_ <- 1..8} class="bg-gray-200 rounded h-32"></div>
+        </div>
+      <% else %>
+        <%= if @gif_error do %>
+          <div class="text-center text-red-500 py-4 font-medium">{@gif_error}</div>
+        <% else %>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div :for={{gif_id, gif_url} <- @gif_results} id={"gif-" <> gif_id}>
+              <img
+                src={gif_url}
+                alt="GIF"
+                class="rounded cursor-pointer transition transform hover:scale-110 border-2 border-transparent hover:border-blue-400 focus:border-blue-500 outline-none focus:ring w-full max-h-32 object-cover shadow-sm"
+                phx-click="send_gif"
+                phx-value-url={gif_url}
+                tabindex="0"
+              />
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+    <div
+      id="chat-box"
+      class="h-80 overflow-y-auto bg-gray-50 rounded p-4 border mb-6 shadow-sm"
+      phx-update="stream"
+    >
+      <div :for={{id, message} <- @streams.messages} id={id} class="mb-3 flex items-start group">
+        <div class="mr-2 mt-1 flex-shrink-0 w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 font-bold uppercase shadow text-xs">
+          {String.first(message.username)}
+        </div>
+        <div class="flex-1">
+          <div class="flex items-baseline">
+            <span class="font-semibold mr-2 text-blue-700">{message.username}</span>
+            <span class="text-xs text-gray-400 font-mono">{message.inserted_at || "now"}</span>
+          </div>
+          <div class="mt-1">
+            <%= if Map.has_key?(message, :gif_url) do %>
+              <img
+                src={message.gif_url}
+                alt="GIF"
+                class="block rounded-xl max-h-40 bg-black/5 mb-1 drop-shadow transition-all duration-200 group-hover:scale-105"
+              />
+            <% else %>
+              <span class="inline-block rounded-lg bg-white shadow px-3 py-1 group-hover:bg-gray-100 transition text-gray-800">
+                {message.content}
+              </span>
+            <% end %>
+          </div>
+        </div>
+      </div>
+      <div class="hidden only:block text-gray-400 text-center">No messages yet</div>
+    </div>
+    <.form for={@form} phx-submit="new_message" class="flex gap-2">
+      <.input
+        field={@form[:message]}
+        type="text"
+        placeholder="Type your message here..."
+        class="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-200 transition"
+        required
+        autocomplete="off"
+      />
+      <button type="submit" class="btn btn-primary px-4 py-2 rounded font-bold transition">
+        Send
+      </button>
+    </.form>
+  </div>
+</LiveChatWeb.Layouts.app>
